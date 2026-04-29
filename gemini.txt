@@ -1,0 +1,187 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Heart, Send, ArrowLeft, Brain, Activity, BookOpen, User, CheckCircle2, Search } from 'lucide-react';
+
+// --- [Knowledge Base] RAG용 데이터 (실제 서비스에서는 DB/Vector DB 사용) ---
+const KNOWLEDGE_BASE = [
+  { theme: "슬픔", context: "상실, 우울, 외로움", strategy: "조급한 위로보다 '머무름'과 '수용'. 상황 수용 후 감정의 이름을 붙여줄 것." },
+  { theme: "분노", context: "억울함, 부당함, 분노", strategy: "정당성 부여(Validation). 사용자의 편에 서서 감정 표출을 적극 권장할 것." },
+  { theme: "미련", context: "과거, 후회, 헤어짐", strategy: "자책 방지. 과거의 진심을 인정해주고 현재의 아픔을 보듬어 줄 것." },
+  { theme: "스트레스", context: "직장, 학업, 번아웃", strategy: "노력에 대한 절대적인 인정. 휴식의 정당성을 부여하고 지지를 선언할 것." }
+];
+
+const apiKey = ""; // 환경 변수 자동 주입
+
+const App = () => {
+  const [step, setStep] = useState('setup');
+  const [messages, setMessages] = useState([]);
+  const [inputValue, setInputValue] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [agentStatus, setAgentStatus] = useState(null); // 'analyzing' | 'retrieving' | 'generating'
+  const scrollRef = useRef(null);
+
+  const [persona, setPersona] = useState({
+    relationship: '친구',
+    emotion: '복잡함',
+    desiredResponse: '공감',
+    intensity: '중간',
+    tone: '다정함'
+  });
+
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+  }, [messages, isTyping, agentStatus]);
+
+  // --- [Agent Logic] 공통 API 호출부 ---
+  const callAgent = async (prompt, systemInstruction) => {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        systemInstruction: { parts: [{ text: systemInstruction }] },
+        generationConfig: { responseMimeType: "application/json" }
+      })
+    });
+    if (!response.ok) throw new Error('Agent communication failed');
+    const data = await response.json();
+    return JSON.parse(data.candidates[0].content.parts[0].text);
+  };
+
+  // --- [Orchestrator] 에이전트 협업 로직 ---
+  const handleSendMessage = async () => {
+    if (!inputValue.trim() || isTyping) return;
+
+    const userText = inputValue;
+    setMessages(prev => [...prev, { role: 'user', text: userText, timestamp: new Date().toLocaleTimeString() }]);
+    setInputValue('');
+    setIsTyping(true);
+
+    try {
+      // Step 1: Analyst Agent - 감정 분석
+      setAgentStatus('analyzing');
+      const analystPrompt = `메시지: "${userText}"`;
+      const analystSystem = `당신은 심리 분석 에이전트입니다. 사용자의 감정을 '슬픔, 분노, 미련, 스트레스, 기타' 중 하나로 분류하고 키워드를 추출하세요. { "category": "슬픔", "keywords": ["외로움", "그리움"], "summary": "짧은 요약" }`;
+      const analysis = await callAgent(analystPrompt, analystSystem);
+
+      // Step 2: RAG Logic - 지식 베이스 검색 (Similarity Match)
+      setAgentStatus('retrieving');
+      const matchedKnowledge = KNOWLEDGE_BASE.find(k => k.theme === analysis.category) || KNOWLEDGE_BASE[0];
+      
+      // Step 3: Listener Agent - 페르소나 기반 응답 생성
+      setAgentStatus('generating');
+      const listenerPrompt = `분석결과: ${JSON.stringify(analysis)}, 공감전략: ${matchedKnowledge.strategy}, 사용자메시지: "${userText}"`;
+      const listenerSystem = `
+        당신은 사용자의 "${persona.relationship}"이며 "${persona.tone}" 말투를 씁니다.
+        공감 전략 지침에 따라 답변하세요. 
+        응답 형식: { "reply": "답변 내용", "insight": "사용자에게 주는 짧은 조언" }
+      `;
+      const finalResult = await callAgent(listenerPrompt, listenerSystem);
+
+      // 최종 응답 반영
+      setMessages(prev => [...prev, {
+        role: 'model',
+        text: finalResult.reply,
+        analysis: analysis,
+        insight: finalResult.insight,
+        timestamp: new Date().toLocaleTimeString()
+      }]);
+
+    } catch (error) {
+      console.error(error);
+      setMessages(prev => [...prev, { role: 'model', text: "시스템 오류가 발생했습니다. 다시 시도해 주세요.", isError: true }]);
+    } finally {
+      setIsTyping(false);
+      setAgentStatus(null);
+    }
+  };
+
+  const handleStartChat = () => {
+    setMessages([{ role: 'model', text: `안녕, 네가 요즘 ${persona.emotion} 때문에 힘들다고 들었어. 무슨 일인지 말해줄래?`, timestamp: new Date().toLocaleTimeString() }]);
+    setStep('chat');
+  };
+
+  // --- UI 컴포넌트 ---
+  const SetupView = () => (
+    <div className="max-w-md mx-auto min-h-screen bg-indigo-50 p-6 flex flex-col justify-center">
+      <div className="bg-white rounded-[2.5rem] shadow-2xl p-8 space-y-6">
+        <div className="text-center">
+          <Heart size={48} className="mx-auto text-indigo-500 mb-4" fill="currentColor" />
+          <h1 className="text-2xl font-black text-gray-800">속마음 에이전트 RAG</h1>
+          <p className="text-gray-400 text-sm">심리 지식 베이스 기반의 고도화된 대화</p>
+        </div>
+        <div className="space-y-4">
+          <select value={persona.relationship} onChange={(e)=>setPersona({...persona, relationship: e.target.value})} className="w-full p-4 bg-gray-50 border-none rounded-2xl font-bold">
+            {['연인', '친구', '부모', '직장상사', '교수'].map(r => <option key={r}>{r}</option>)}
+          </select>
+          <select value={persona.tone} onChange={(e)=>setPersona({...persona, tone: e.target.value})} className="w-full p-4 bg-gray-50 border-none rounded-2xl font-bold">
+            {['다정함', '무뚝뚝함', '차가움', '유머러스함'].map(t => <option key={t}>{t}</option>)}
+          </select>
+        </div>
+        <button onClick={handleStartChat} className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2">
+          에이전트 가동 시작 <Brain size={20} />
+        </button>
+      </div>
+    </div>
+  );
+
+  const ChatView = () => (
+    <div className="max-w-md mx-auto h-screen bg-[#F0F2F5] flex flex-col">
+      <header className="bg-white px-5 py-4 flex items-center justify-between border-b shadow-sm">
+        <div className="flex items-center gap-3">
+          <button onClick={() => setStep('setup')}><ArrowLeft size={20} /></button>
+          <span className="font-black text-gray-800">{persona.relationship} (AI)</span>
+        </div>
+        <div className="flex gap-2">
+          <Activity size={18} className={agentStatus ? "text-indigo-500 animate-pulse" : "text-gray-300"} />
+        </div>
+      </header>
+
+      {agentStatus && (
+        <div className="bg-indigo-600 text-white px-4 py-1.5 text-[10px] font-bold flex items-center gap-2">
+          {agentStatus === 'analyzing' && <><Activity size={12} className="animate-spin" /> 감정 분석 중...</>}
+          {agentStatus === 'retrieving' && <><Search size={12} className="animate-bounce" /> 지식 베이스에서 공감 전략 검색 중...</>}
+          {agentStatus === 'generating' && <><BookOpen size={12} className="animate-pulse" /> 페르소나 답변 생성 중...</>}
+        </div>
+      )}
+
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
+        {messages.map((msg, idx) => (
+          <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div className={`max-w-[85%] flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+              <div className={`px-4 py-3 rounded-2xl shadow-sm text-sm leading-relaxed ${
+                msg.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white text-gray-800 rounded-tl-none'
+              }`}>
+                {msg.text}
+              </div>
+              {msg.analysis && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  <span className="px-2 py-0.5 bg-indigo-100 text-indigo-600 text-[9px] font-bold rounded-full">#{msg.analysis.category}</span>
+                  {msg.insight && <span className="px-2 py-0.5 bg-green-100 text-green-600 text-[9px] font-bold rounded-full">Tip: {msg.insight}</span>}
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="bg-white p-4 border-t pb-8">
+        <div className="flex items-center gap-3">
+          <textarea
+            value={inputValue}
+            onChange={(e)=>setInputValue(e.target.value)}
+            onKeyDown={(e)=>e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSendMessage())}
+            placeholder="마음을 털어놓으세요..."
+            className="flex-1 bg-gray-50 border-none rounded-xl p-3 text-sm focus:ring-2 focus:ring-indigo-100 resize-none h-12"
+          />
+          <button onClick={handleSendMessage} disabled={isTyping} className="bg-indigo-600 text-white p-3 rounded-xl shadow-lg active:scale-95 transition-transform">
+            <Send size={20} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  return <div className="antialiased">{step === 'setup' ? <SetupView /> : <ChatView />}</div>;
+};
+
+export default App;

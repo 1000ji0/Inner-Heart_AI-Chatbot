@@ -1,0 +1,86 @@
+# 바이트코드 및 Python 캐시
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# 가상 환경
+.venv/
+venv/
+env/
+ENV/
+.env
+.env.local
+.env.*
+
+# Apps Script / clasp 로컬 메타데이터
+.clasp.json
+
+# 로컬 백업/임시 파일
+*.backup
+*.bak
+*.tmp
+*.old
+
+# 개인 설정/비밀 정보
+secrets.json
+credentials.json
+*.secret
+*.key
+*.pem
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+.project
+.pydevproject
+.settings/
+
+# 테스트 및 커버리지
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# 로그 파일
+*.log
+logs/
+
+# 데이터베이스
+*.db
+*.sqlite
+*.sqlite3
+
+# 로컬 설정
+config.local.py
+settings.local.py
+
+# OS 파일
+Thumbs.db
+.DS_Store
+
+# UV 매니저
+.uv/
+uv.lock
+
+# Node (프론트엔드 있을 경우)
+node_modules/
+package-lock.json
+yarn.lock
+
+# IDE 설정 디렉토리
+.idea/
+.vscode/settings.json
+
+# 민감한 정보
+secrets.json
+credentials.json
+config.prod.py

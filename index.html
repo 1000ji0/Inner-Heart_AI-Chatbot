@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>속마음 말하기</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f0e4d7;  /* 카카오톡 스타일 베이지 배경 */
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .app-container {
+      display: flex;
+      height: 100vh;
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    }
+
+    /* 페르소나 설정 화면 */
+    .persona-setup {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      background: linear-gradient(135deg, #8d6e63 0%, #5d4037 100%);  /* 갈색 그라데이션 */
+      padding: 40px;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .persona-setup.hidden {
+      display: none;
+    }
+
+    .setup-card {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 500px;
+    }
+
+    .setup-title {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .setup-title h1 {
+      font-size: 2rem;
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .setup-title p {
+      color: #666;
+      font-size: 1rem;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #333;
+      font-size: 0.9rem;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    .form-row-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 15px;
+    }
+
+    select {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e1e5e9;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      background: white;
+      transition: all 0.3s ease;
+    }
+
+    select:focus {
+      outline: none;
+      border-color: #ffeb3b;  /* 노란색 포커스 */
+      box-shadow: 0 0 0 3px rgba(255, 235, 59, 0.1);
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: #ffeb3b;  /* 노란색 체크박스 */
+    }
+
+    .checkbox-group label {
+      margin: 0;
+      font-size: 0.9rem;
+      color: #666;
+    }
+
+    .setup-btn {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, #ffeb3b 0%, #fdd835 100%);  /* 노란색 그라데이션 */
+      color: #333;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-top: 20px;
+    }
+
+    .setup-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(255, 235, 59, 0.3);
+    }
+
+    .setup-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* 채팅 화면 */
+    .chat-container {
+      display: none;
+      flex-direction: column;
+      height: 100vh;
+      background: #f0e4d7;  /* 카카오톡 채팅 배경 */
+    }
+
+    .chat-container.show {
+      display: flex;
+    }
+
+    /* 채팅 헤더 */
+    .chat-header {
+      background: #5d4037;  /* 갈색 헤더 */
+      color: white;
+      padding: 15px 20px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .back-btn {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 1.2rem;
+      cursor: pointer;
+      padding: 5px;
+      border-radius: 50%;
+      transition: background 0.3s ease;
+    }
+
+    .back-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .chat-info {
+      flex: 1;
+    }
+
+    .chat-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .chat-subtitle {
+      font-size: 0.85rem;
+      opacity: 0.8;
+    }
+
+    .chat-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .action-btn {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 1.1rem;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 50%;
+      transition: background 0.3s ease;
+    }
+
+    .action-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    /* 채팅 메시지 영역 */
+    .chat-messages {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      background: #f0e4d7;  /* 베이지 배경 */
+    }
+
+    .message {
+      display: flex;
+      margin-bottom: 15px;
+      align-items: flex-end;
+    }
+
+    .message.user {
+      flex-direction: row-reverse;
+    }
+
+    .message-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      flex-shrink: 0;
+      margin: 0 8px;
+    }
+
+    .message.user .message-avatar {
+      background: #ffeb3b;  /* 노란색 유저 아바타 */
+      color: #333;
+    }
+
+    .message.ai .message-avatar {
+      background: #d7ccc8;  /* 연한 갈색 AI 아바타 */
+      color: #666;
+    }
+
+    .message-content {
+      max-width: 70%;
+      padding: 12px 16px;
+      border-radius: 18px;
+      font-size: 0.95rem;
+      line-height: 1.4;
+      position: relative;
+    }
+
+    .message.user .message-content {
+      background: #ffeb3b;  /* 노란색 유저 말풍선 */
+      color: #333;
+      border-bottom-right-radius: 4px;
+    }
+
+    .message.ai .message-content {
+      background: white;
+      color: #333;
+      border: 1px solid #d7ccc8;  /* 연한 갈색 border */
+      border-bottom-left-radius: 4px;
+    }
+
+    .message-time {
+      font-size: 0.75rem;
+      color: #999;
+      margin-top: 4px;
+      text-align: right;
+    }
+
+    .message.ai .message-time {
+      text-align: left;
+    }
+
+    /* 타이핑 인디케이터 */
+    .typing-indicator {
+      display: none;
+      margin-bottom: 15px;
+    }
+
+    .typing-indicator.show {
+      display: block;
+    }
+
+    .typing-bubble {
+      background: white;
+      border: 1px solid #d7ccc8;  /* 연한 갈색 border */
+      border-radius: 18px;
+      border-bottom-left-radius: 4px;
+      padding: 12px 16px;
+      max-width: 70px;
+      margin-left: 8px;
+    }
+
+    .typing-dots {
+      display: flex;
+      gap: 4px;
+    }
+
+    .typing-dot {
+      width: 6px;
+      height: 6px;
+      background: #999;
+      border-radius: 50%;
+      animation: typing 1.4s infinite;
+    }
+
+    .typing-dot:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .typing-dot:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes typing {
+      0%, 60%, 100% {
+        transform: translateY(0);
+        opacity: 0.4;
+      }
+      30% {
+        transform: translateY(-10px);
+        opacity: 1;
+      }
+    }
+
+    /* 채팅 입력 영역 */
+    .chat-input-container {
+      background: white;
+      padding: 15px 20px;
+      border-top: 1px solid #d7ccc8;  /* 연한 갈색 border */
+      display: flex;
+      align-items: flex-end;
+      gap: 10px;
+    }
+
+    .chat-input-wrapper {
+      flex: 1;
+      display: flex;
+      align-items: flex-end;
+      background: #f0f0f0;
+      border-radius: 25px;
+      padding: 8px 15px;
+      min-height: 40px;
+    }
+
+    .chat-input {
+      flex: 1;
+      border: none;
+      background: none;
+      outline: none;
+      font-size: 0.95rem;
+      resize: none;
+      max-height: 100px;
+      font-family: inherit;
+      line-height: 1.4;
+    }
+
+    .chat-input::placeholder {
+      color: #999;
+    }
+
+    .send-btn {
+      background: #ffeb3b;  /* 노란색 전송 버튼 */
+      color: #333;
+      border: none;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 1.1rem;
+    }
+
+    .send-btn:hover {
+      background: #fdd835;
+      transform: scale(1.05);
+    }
+
+    .send-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* 로딩 화면 */
+    .loading {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .loading.show {
+      display: flex;
+    }
+
+    .loading-content {
+      background: white;
+      padding: 30px;
+      border-radius: 15px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #ffeb3b;  /* 노란색 스피너 */
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 15px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* 에러 메시지 */
+    .error-message {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      right: 20px;
+      background: #ff4444;
+      color: white;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 5px 15px rgba(255, 68, 68, 0.3);
+      display: none;
+      z-index: 1000;
+    }
+
+    .error-message.show {
+      display: block;
+    }
+
+    /* 모바일 대응 */
+    @media (max-width: 768px) {
+      .app-container {
+        height: 100vh;
+      }
+
+      .persona-setup {
+        padding: 20px;
+      }
+
+      .setup-card {
+        padding: 30px 20px;
+      }
+
+      .form-row, .form-row-3 {
+        grid-template-columns: 1fr;
+        gap: 15px;
+      }
+
+      .chat-header {
+        padding: 12px 15px;
+      }
+
+      .chat-messages {
+        padding: 15px;
+      }
+
+      .chat-input-container {
+        padding: 12px 15px;
+      }
+
+      .message-content {
+        max-width: 85%;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .setup-title h1 {
+        font-size: 1.5rem;
+      }
+
+      .setup-card {
+        padding: 20px 15px;
+      }
+
+      .chat-messages {
+        padding: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- 페르소나 설정 화면 -->
+    <div class="persona-setup" id="personaSetup">
+      <div class="setup-card">
+        <div class="setup-title">
+          <h1>💭 속마음 말하기</h1>
+          <p>AI와 마음속 이야기를 나눠보세요</p>
+        </div>
+
+        <form id="personaForm">
+          <div class="form-group">
+            <label for="relationship">대상 관계</label>
+            <select id="relationship" name="relationship" required>
+              <option value="">선택해주세요</option>
+              <option value="연인">연인</option>
+              <option value="친구">친구</option>
+              <option value="부모">부모</option>
+              <option value="직장상사">직장상사</option>
+              <option value="교수">교수</option>
+              <option value="기타">기타</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="emotion">내 감정</label>
+              <select id="emotion" name="emotion" required>
+                <option value="">선택해주세요</option>
+                <option value="분노">분노</option>
+                <option value="슬픔">슬픔</option>
+                <option value="후회">후회</option>
+                <option value="감사">감사</option>
+                <option value="미련">미련</option>
+                <option value="복잡함">복잡함</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="desiredResponse">원하는 반응</label>
+              <select id="desiredResponse" name="desiredResponse" required>
+                <option value="">선택해주세요</option>
+                <option value="사과">사과</option>
+                <option value="위로">위로</option>
+                <option value="공감">공감</option>
+                <option value="무시">무시</option>
+                <option value="솔직한 피드백">솔직한 피드백</option>
+                <option value="책임 인정">책임 인정</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row-3">
+            <div class="form-group">
+              <label for="intensity">반응 강도</label>
+              <select id="intensity" name="intensity" required>
+                <option value="">선택해주세요</option>
+                <option value="부드럽게">부드럽게</option>
+                <option value="중간">중간</option>
+                <option value="강하게">강하게</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="tone">리스너 말투</label>
+              <select id="tone" name="tone" required>
+                <option value="">선택해주세요</option>
+                <option value="다정">다정</option>
+                <option value="무뚝뚝함">무뚝뚝함</option>
+                <option value="차가움">차가움</option>
+                <option value="유머러스함">유머러스함</option>
+                <option value="보통">보통</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <div class="checkbox-group">
+                <input type="checkbox" id="profanityAllowed" name="profanityAllowed" checked>
+                <label for="profanityAllowed">욕설 허용</label>
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" class="setup-btn" id="setupBtn">
+            🚀 채팅 시작하기
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- 채팅 화면 -->
+    <div class="chat-container" id="chatContainer">
+      <!-- 채팅 헤더 -->
+      <div class="chat-header">
+        <button class="back-btn" id="backBtn">←</button>
+        <div class="chat-info">
+          <div class="chat-title" id="chatTitle">채팅 중...</div>
+          <div class="chat-subtitle" id="chatSubtitle">AI와 대화를 시작하세요</div>
+        </div>
+        <div class="chat-actions">
+          <button class="action-btn" title="정보">ℹ️</button>
+          <button class="action-btn" title="설정">⚙️</button>
+        </div>
+      </div>
+
+      <!-- 채팅 메시지 영역 -->
+      <div class="chat-messages" id="chatMessages">
+        <div class="message ai">
+          <div class="message-avatar">🤖</div>
+          <div class="message-content">
+            안녕하세요! 페르소나가 설정되었습니다. 마음속 이야기를 자유롭게 나눠보세요. 😊
+          </div>
+          <div class="message-time" id="welcomeTime"></div>
+        </div>
+      </div>
+
+      <!-- 타이핑 인디케이터 -->
+      <div class="typing-indicator" id="typingIndicator">
+        <div class="typing-bubble">
+          <div class="typing-dots">
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 채팅 입력 영역 -->
+      <div class="chat-input-container">
+        <div class="chat-input-wrapper">
+          <textarea 
+            id="chatInput" 
+            class="chat-input" 
+            placeholder="메시지를 입력하세요..."
+            rows="1"
+          ></textarea>
+        </div>
+        <button type="button" class="send-btn" id="sendBtn">
+          📤
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 로딩 화면 -->
+  <div class="loading" id="loading">
+    <div class="loading-content">
+      <div class="spinner"></div>
+      <p>페르소나를 설정하고 있습니다...</p>
+    </div>
+  </div>
+
+  <!-- 에러 메시지 -->
+  <div class="error-message" id="errorMessage"></div>
+
+  <script>
+    let sessionId = null;
+    let personaData = null;
+
+    // 페이지 로드 시 초기화
+    document.addEventListener('DOMContentLoaded', function() {
+      // 현재 시간 표시
+      document.getElementById('welcomeTime').textContent = getCurrentTime();
+      
+      // 페르소나 설정 폼 이벤트
+      document.getElementById('personaForm').addEventListener('submit', handlePersonaSetup);
+      
+      // 채팅 입력 이벤트
+      document.getElementById('chatInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          sendMessage();
+        }
+      });
+      
+      // 전송 버튼 이벤트
+      document.getElementById('sendBtn').addEventListener('click', sendMessage);
+      
+      // 뒤로가기 버튼 이벤트
+      document.getElementById('backBtn').addEventListener('click', function() {
+        if (confirm('채팅을 종료하고 페르소나를 다시 설정하시겠습니까?')) {
+          resetToPersonaSetup();
+        }
+      });
+      
+      // 텍스트 영역 자동 크기 조정
+      document.getElementById('chatInput').addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+      });
+    });
+
+    // 페르소나 설정 처리
+    async function handlePersonaSetup(e) {
+      e.preventDefault();
+      
+      const setupBtn = document.getElementById('setupBtn');
+      const loading = document.getElementById('loading');
+      const errorMessage = document.getElementById('errorMessage');
+      
+      // UI 상태 변경
+      setupBtn.disabled = true;
+      setupBtn.textContent = '설정 중...';
+      loading.classList.add('show');
+      errorMessage.classList.remove('show');
+      
+      // 폼 데이터 수집
+      const formData = {
+        relationship: document.getElementById('relationship').value,
+        emotion: document.getElementById('emotion').value,
+        desiredResponse: document.getElementById('desiredResponse').value,
+        intensity: document.getElementById('intensity').value,
+        tone: document.getElementById('tone').value,
+        profanityAllowed: document.getElementById('profanityAllowed').checked
+      };
+      
+      try {
+        const response = await google.script.run
+          .withSuccessHandler(handlePersonaSuccess)
+          .withFailureHandler(handleError)
+          .setupPersona(formData);
+        
+      } catch (error) {
+        handleError(error);
+      }
+    }
+
+    // 페르소나 설정 성공 처리
+    function handlePersonaSuccess(response) {
+      console.log('페르소나 설정 성공:', response);
+      
+      if (response && response.success) {
+        sessionId = response.sessionId;
+        personaData = {
+          relationship: document.getElementById('relationship').value,
+          emotion: document.getElementById('emotion').value,
+          desiredResponse: document.getElementById('desiredResponse').value,
+          intensity: document.getElementById('intensity').value,
+          tone: document.getElementById('tone').value
+        };
+        
+        // 채팅 화면으로 전환
+        document.getElementById('personaSetup').classList.add('hidden');
+        document.getElementById('chatContainer').classList.add('show');
+        document.getElementById('loading').classList.remove('show');
+        
+        // 채팅 제목 업데이트
+        document.getElementById('chatTitle').textContent = `${personaData.relationship}과의 대화`;
+        document.getElementById('chatSubtitle').textContent = `${personaData.tone}한 말투로 ${personaData.intensity} 반응`;
+        
+        // 입력창에 포커스
+        document.getElementById('chatInput').focus();
+      } else {
+        handleError(new Error(response ? response.error : '알 수 없는 오류가 발생했습니다.'));
+      }
+    }
+
+    // 메시지 전송
+    async function sendMessage() {
+      const chatInput = document.getElementById('chatInput');
+      const message = chatInput.value.trim();
+      
+      if (!message || !sessionId) return;
+      
+      // 사용자 메시지 표시
+      addMessage(message, 'user');
+      chatInput.value = '';
+      chatInput.style.height = 'auto';
+      
+      // 타이핑 인디케이터 표시
+      showTypingIndicator();
+      
+      try {
+        const response = await google.script.run
+          .withSuccessHandler(handleMessageSuccess)
+          .withFailureHandler(handleError)
+          .sendChatMessage({
+            sessionId: sessionId,
+            message: message
+          });
+        
+      } catch (error) {
+        handleError(error);
+      }
+    }
+
+    // 메시지 전송 성공 처리
+    function handleMessageSuccess(response) {
+      console.log('메시지 전송 성공:', response);
+      hideTypingIndicator();
+      
+      if (response && response.success) {
+        addMessage(response.response, 'ai');
+      } else {
+        handleError(new Error(response ? response.error : '메시지 전송에 실패했습니다.'));
+      }
+    }
+
+    // 메시지 추가
+    function addMessage(content, sender) {
+      const chatMessages = document.getElementById('chatMessages');
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `message ${sender}`;
+      
+      const avatar = sender === 'user' ? '👤' : '🤖';
+      const time = getCurrentTime();
+      
+      messageDiv.innerHTML = `
+        <div class="message-avatar">${avatar}</div>
+        <div class="message-content">${content}</div>
+        <div class="message-time">${time}</div>
+      `;
+      
+      chatMessages.appendChild(messageDiv);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    // 타이핑 인디케이터 표시
+    function showTypingIndicator() {
+      document.getElementById('typingIndicator').classList.add('show');
+      const chatMessages = document.getElementById('chatMessages');
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    // 타이핑 인디케이터 숨김
+    function hideTypingIndicator() {
+      document.getElementById('typingIndicator').classList.remove('show');
+    }
+
+    // 현재 시간 가져오기
+    function getCurrentTime() {
+      const now = new Date();
+      return now.toLocaleTimeString('ko-KR', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+    }
+
+    // 페르소나 설정으로 돌아가기
+    function resetToPersonaSetup() {
+      sessionId = null;
+      personaData = null;
+      
+      document.getElementById('chatContainer').classList.remove('show');
+      document.getElementById('personaSetup').classList.remove('hidden');
+      
+      // 채팅 메시지 초기화
+      const chatMessages = document.getElementById('chatMessages');
+      chatMessages.innerHTML = `
+        <div class="message ai">
+          <div class="message-avatar">🤖</div>
+          <div class="message-content">
+            안녕하세요! 페르소나가 설정되었습니다. 마음속 이야기를 자유롭게 나눠보세요. 😊
+          </div>
+          <div class="message-time">${getCurrentTime()}</div>
+        </div>
+      `;
+    }
+
+    // 에러 처리
+    function handleError(error) {
+      console.error('Error:', error);
+      
+      // 로딩 상태 해제
+      document.getElementById('loading').classList.remove('show');
+      document.getElementById('setupBtn').disabled = false;
+      document.getElementById('setupBtn').textContent = '🚀 채팅 시작하기';
+      
+      // 에러 메시지 표시
+      const errorMessage = document.getElementById('errorMessage');
+      const errorText = error.message || error.toString() || '알 수 없는 오류가 발생했습니다.';
+      errorMessage.textContent = '오류가 발생했습니다: ' + errorText;
+      errorMessage.classList.add('show');
+      
+      // 타이핑 인디케이터 숨김
+      hideTypingIndicator();
+      
+      // 5초 후 에러 메시지 자동 숨김
+      setTimeout(() => {
+        errorMessage.classList.remove('show');
+      }, 5000);
+    }
+  </script>
+</body>
+</html>
